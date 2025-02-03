@@ -17,8 +17,8 @@ fn main() -> ! {
 
     let board = Board::take().unwrap();
     let mut timer = Timer::new(board.TIMER0);
-    let show_time = 100_u32;
-    let dark_time = 100_u32;
+    let show_time = 48_u32;
+    //let dark_time = 1000_u32;
     let mut display = Display::new(board.display_pins);
     let light_it_all = [
         [1, 1, 1, 1, 1],
@@ -27,7 +27,7 @@ fn main() -> ! {
         [1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1],
     ];
-    // Show light_it_all for 1000ms just because
+    // Show light_it_all for 1000ms
     display.show(&mut timer, light_it_all, 1000_u32);
     // clear the display
     display.clear();
@@ -40,13 +40,13 @@ fn main() -> ! {
 
     loop {
         for [row,col] in light_sequence {
-            // Show the current matrix
+            // Show light_it_all for 1000ms
             image_matrix[row][col] = 1;
             display.show(&mut timer, image_matrix, show_time);
             // clear the matrix and display again
             image_matrix[row][col] = 0;
             display.clear();
-            timer.delay_ms(dark_time);
+            //timer.delay_ms(dark_time);
         }  
     }
 }
