@@ -20,11 +20,11 @@ use microbit::{
 };
 
 #[cfg(feature = "v1")]
-use embedded_io::Read;
+use embedded_io::{Read,Write};
+
 
 #[cfg(feature = "v2")]
-use embedded_hal_nb::serial::Read;
-
+use embedded_hal_nb::serial::{Read,Write};
 
 #[cfg(feature = "v2")]
 mod serial_setup;
@@ -59,6 +59,8 @@ fn main() -> ! {
 
     loop {
         let byte = nb::block!(serial.read()).unwrap();
-        rprintln!("{}", byte);
+        nb::block!(serial.write(b'\n')).unwrap();
+        nb::block!(serial.write(byte)).unwrap();
+        nb::block!(serial.flush()).unwrap();
     }
 }
