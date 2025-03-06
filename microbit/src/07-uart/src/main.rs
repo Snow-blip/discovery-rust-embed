@@ -80,8 +80,7 @@ fn main() -> ! {
                 }
             }
         }
-        write!(serial,"{}\n\r",buffer.iter().map(|&b| b as char).collect::<String<32>>());
-
-        // TODO Send back the reversed string
+        // Send back the reversed string
+        write!(serial,"{}\n\r",buffer.iter().rev().map(|&b| b as char).collect::<String<32>>());
     }
 }
