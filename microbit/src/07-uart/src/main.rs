@@ -2,8 +2,8 @@
 #![no_std]
 
 use cortex_m_rt::entry;
+use rtt_target::{rtt_init_print, rprintln};
 use panic_rtt_target as _;
-use rtt_target::rtt_init_print;
 
 #[cfg(feature = "v1")]
 use microbit::{
@@ -20,10 +20,11 @@ use microbit::{
 };
 
 #[cfg(feature = "v1")]
-use embedded_io::Write;
+use embedded_io::Read;
 
 #[cfg(feature = "v2")]
-use embedded_hal_nb::serial::Write;
+use embedded_hal_nb::serial::Read;
+
 
 #[cfg(feature = "v2")]
 mod serial_setup;
@@ -37,19 +38,16 @@ fn main() -> ! {
 
     #[cfg(feature = "v1")]
     let mut serial = {
-        // Set up UART for microbit v1
-        let serial = uart::Uart::new(
+        uart::Uart::new(
             board.UART0,
             board.uart.into(),
             Parity::EXCLUDED,
             Baudrate::BAUD115200,
-        );
-        serial
+        )
     };
 
     #[cfg(feature = "v2")]
     let mut serial = {
-        // Set up UARTE for microbit v2 using UartePort wrapper
         let serial = uarte::Uarte::new(
             board.UARTE0,
             board.uart.into(),
@@ -59,17 +57,8 @@ fn main() -> ! {
         UartePort::new(serial)
     };
 
-    // Write a byte and flush
-    #[cfg(feature = "v1")]
-    serial.write(&[b'X']).unwrap(); // Adjusted for UART on v1, no need for nb::block!
-
-    #[cfg(feature = "v2")]
-    {
-        for c in b"The quick brown fox jumps over the lazy dog." {
-            nb::block!(serial.write(*c)).unwrap();
-        } 
-        nb::block!(serial.flush()).unwrap();
+    loop {
+        let byte = nb::block!(serial.read()).unwrap();
+        rprintln!("{}", byte);
     }
-
-    loop {}
 }
