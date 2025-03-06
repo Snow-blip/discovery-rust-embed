@@ -5,6 +5,7 @@ use cortex_m::register::basepri::write;
 use cortex_m_rt::entry;
 use embedded_hal_nb::serial;
 use core::fmt::Write;
+use heapless::String;
 use heapless::Vec;
 use rtt_target::rtt_init_print;
 use panic_rtt_target as _;
@@ -79,10 +80,7 @@ fn main() -> ! {
                 }
             }
         }
-        write!(serial,"Just let me write something\n\r");
-        // TODO Receive a user request. Each user request ends with ENTER
-        // NOTE `buffer.push` returns a `Result`. Handle the error by responding
-        // with an error message.
+        write!(serial,"{}\n\r",buffer.iter().map(|&b| b as char).collect::<String<32>>());
 
         // TODO Send back the reversed string
     }
