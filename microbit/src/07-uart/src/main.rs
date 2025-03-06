@@ -1,8 +1,12 @@
 #![no_main]
 #![no_std]
 
+use cortex_m::register::basepri::write;
 use cortex_m_rt::entry;
-use rtt_target::{rtt_init_print, rprintln};
+use embedded_hal_nb::serial;
+use core::fmt::Write;
+use heapless::Vec;
+use rtt_target::rtt_init_print;
 use panic_rtt_target as _;
 
 #[cfg(feature = "v1")]
@@ -20,11 +24,9 @@ use microbit::{
 };
 
 #[cfg(feature = "v1")]
-use embedded_io::{Read,Write};
-
-
+use embedded_io::Read;
 #[cfg(feature = "v2")]
-use embedded_hal_nb::serial::{Read,Write};
+use embedded_hal_nb::serial::Read;
 
 #[cfg(feature = "v2")]
 mod serial_setup;
@@ -57,10 +59,31 @@ fn main() -> ! {
         UartePort::new(serial)
     };
 
+    // A buffer with 32 bytes of capacity
+    let mut buffer: Vec<u8, 32> = Vec::new();
+
     loop {
-        let byte = nb::block!(serial.read()).unwrap();
-        nb::block!(serial.write(b'\n')).unwrap();
-        nb::block!(serial.write(byte)).unwrap();
-        nb::block!(serial.flush()).unwrap();
+        buffer.clear();
+        let mut eol= false;
+        while !eol {
+            let read_byte=nb::block!(serial.read()).unwrap();
+            if read_byte == 13 {
+                eol=true;
+            } else {
+                match buffer.push(read_byte) {
+                    Ok(_) => (),
+                    Err(failed_byte) => {
+                        write!(serial,"Buffer full, could not write {} to internal buffer. Clearing buffer.\n\r",failed_byte).unwrap();
+                        buffer.clear();
+                    },
+                }
+            }
+        }
+        write!(serial,"Just let me write something\n\r");
+        // TODO Receive a user request. Each user request ends with ENTER
+        // NOTE `buffer.push` returns a `Result`. Handle the error by responding
+        // with an error message.
+
+        // TODO Send back the reversed string
     }
 }
