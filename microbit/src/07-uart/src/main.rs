@@ -65,7 +65,9 @@ fn main() -> ! {
 
     #[cfg(feature = "v2")]
     {
-        nb::block!(serial.write(b'X')).unwrap();
+        for c in b"The quick brown fox jumps over the lazy dog." {
+            nb::block!(serial.write(*c)).unwrap();
+        } 
         nb::block!(serial.flush()).unwrap();
     }
 
