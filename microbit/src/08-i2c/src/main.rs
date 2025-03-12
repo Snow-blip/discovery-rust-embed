@@ -9,7 +9,7 @@ use cortex_m::register::basepri::write;
 use embedded_hal_nb::serial;
 use core::fmt::Write;
 use heapless::Vec;
-use core::str::from_utf8;
+use core::str;
 
 #[cfg(feature = "v1")]
 use microbit::{
@@ -40,7 +40,7 @@ mod serial_setup;
 use serial_setup::UartePort;
 
 use lsm303agr::{
-    AccelOutputDataRate, Lsm303agr,
+    AccelOutputDataRate, MagOutputDataRate, Lsm303agr,
 };
 
 #[entry]
@@ -87,6 +87,7 @@ fn main() -> ! {
     let mut sensor = Lsm303agr::new_with_i2c(i2c);
     sensor.init().unwrap();
     sensor.set_accel_odr(AccelOutputDataRate::Hz50).unwrap();
+    sensor.set_mag_odr(MagOutputDataRate::Hz50).unwrap();
     rprintln!("Sensor connected");
 
     // A buffer with 32 bytes of capacity
@@ -109,9 +110,20 @@ fn main() -> ! {
                 }
             }
         }
-        let data = sensor.accel_data().unwrap();
-        // serial print
-        write!(serial,"Acceleration: x {} y {} z {}", data.x, data.y, data.z).unwrap();
+        match str::from_utf8(&buffer).unwrap() {
+             "magnetometer" =>{
+                let data = sensor.mag_data().unwrap();
+                write!(serial,"Magnetic field: x {} y {} z {}\n\r", data.x, data.y, data.z).unwrap();
+             },
+             "accelerometer" =>{
+                let data = sensor.accel_data().unwrap();
+                write!(serial,"Acceleration: x {} y {} z {}\n\r", data.x, data.y, data.z).unwrap();
+             },
+             other => {
+                write!(serial,"Unrecognised command {}\n\r", other).unwrap();
+             },
+        }
+        
         nb::block!(serial.flush()).unwrap()
     }
 }
