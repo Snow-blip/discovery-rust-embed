@@ -27,3 +27,6 @@ embedded-io = "0.6.1"
 [features]
 v2 = ["microbit-v2"]
 v1 = ["microbit"]
+
+[[example]]
+name = "print_magnetometer" # examples/boolean.rs
