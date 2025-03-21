@@ -11,7 +11,12 @@ use crate::calibration::calc_calibration;
 use crate::calibration::calibrated_measurement;
 
 mod led;
-use led::Direction;
+use crate::led::Direction;
+use crate::led::direction_to_led;
+
+// You'll find this useful ;-)
+use core::f32::consts::PI;
+use libm::atan2f;
 
 use microbit::{display::blocking::Display, hal::Timer};
 
@@ -50,22 +55,29 @@ fn main() -> ! {
         while !sensor.mag_status().unwrap().xyz_new_data {}
         let mut data = sensor.mag_data().unwrap();
         data = calibrated_measurement(data, &calibration);
-        rprintln!("x: {}, y: {}, z: {}", data.x, data.y, data.z);
 
-        let dir = match (data.x > 0, data.y > 0) {
-            // Quadrant ???
-            (true, true) => Direction::NorthEast,
-            // Quadrant ???
-            (false, true) => Direction::NorthWest,
-            // Quadrant ???
-            (false, false) => Direction::SouthWest,
-            // Quadrant ???
-            (true, false) => Direction::SouthEast,
+        // use libm's atan2f since this isn't in core yet
+        let theta = atan2f(data.y as f32, data.x as f32);
+
+        // Figure out the direction based on theta
+        let dir = match theta {
+            -3.141592653589794..=-2.748893571891069 | 2.748893571891069..=3.141592653589794=> Direction::West,
+            -2.748893571891069..=-1.9634954084936207 => Direction::SouthWest,
+            -1.9634954084936207..=-1.1780972450961724
+            => Direction::South,
+            -1.1780972450961724..=-0.39269908169872414
+            => Direction::SouthEast,
+            -0.39269908169872414..=0.39269908169872414
+            => Direction::East,
+            0.39269908169872414..=1.1780972450961724
+            => Direction::NorthEast,
+            1.1780972450961724..=1.9634954084936207
+            => Direction::North,
+            1.9634954084936207..=2.748893571891069 => Direction::NorthWest,
+            _ => panic!("Something wrong with atan"),
         };
+    
 
-        // use the led module to turn the direction into an LED arrow
-        // and the led display functions from chapter 5 to display the
-        // arrow
-        display.show(&mut timer, led::direction_to_led(dir), 100);
+        display.show(&mut timer, direction_to_led(dir), 100);
     }
 }
