@@ -10,12 +10,14 @@ use panic_rtt_target as _;
 use microbit::{
     hal::twi,
     pac::twi0::frequency::FREQUENCY_A,
+    hal::{prelude::*, Timer}
 };
 
 #[cfg(feature = "v2")]
 use microbit::{
     hal::twim,
     pac::twim0::frequency::FREQUENCY_A,
+    hal::{prelude::*, Timer}
 };
 
 use lsm303agr::{
@@ -43,9 +45,33 @@ fn main() -> ! {
     sensor.set_accel_scale(AccelScale::G8);
     rprintln!("Sensor connected");
 
+    let mut timer = Timer::new(board.TIMER0).into_periodic();
+
     loop {
-        let data = sensor.accel_data().unwrap();
-        rprintln!("Acceleration: x {} y {} z {}\n\r", 
-            data.x, data.y, data.z);
+        // By default, the app is not "observing" the acceleration of the board.
+        // When a significant X acceleration is detected (i.e. the acceleration goes above some threshold), the app should start a new measurement.
+        // During that measurement interval, the app should keep track of the maximum acceleration observed
+        // After the measurement interval ends, the app must report the maximum acceleration observed. You can report the value using the rprintln! macro.
+
+        let mut x_acc = sensor.accel_data().unwrap().x.abs();
+        if (x_acc >= 1000) {
+            rprintln!("Start measurement");
+            timer.start(1000000_u32); // documentation says frequency is 1 MHz and argument is cycle count. so... 1e6 would be 1 second?
+            let mut max_acc = x_acc;
+            loop {
+                match timer.wait() {
+                    Ok(()) => {
+                        rprintln!("Max acceleration is {} mg.",max_acc);
+                        break;
+                    },
+                    Err(_) => {
+                        x_acc = sensor.accel_data().unwrap().x.abs();
+                        if x_acc>max_acc {
+                            max_acc = x_acc;
+                        }
+                    },
+                }
+            }
+        }
     }
 }
