@@ -42,7 +42,7 @@ fn main() -> ! {
     let mut sensor = Lsm303agr::new_with_i2c(i2c);
     sensor.init().unwrap();
     sensor.set_accel_odr(AccelOutputDataRate::Hz50).unwrap();
-    sensor.set_accel_scale(AccelScale::G8);
+    sensor.set_accel_scale(AccelScale::G16);
     rprintln!("Sensor connected");
 
     let mut timer = Timer::new(board.TIMER0).into_periodic();
