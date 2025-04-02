@@ -10,14 +10,16 @@ use panic_rtt_target as _;
 use microbit::{
     hal::twi,
     pac::twi0::frequency::FREQUENCY_A,
-    hal::{prelude::*, Timer}
+    hal::{prelude::*, Timer},
+    display::blocking::Display,
 };
 
 #[cfg(feature = "v2")]
 use microbit::{
     hal::twim,
     pac::twim0::frequency::FREQUENCY_A,
-    hal::{prelude::*, Timer}
+    hal::{prelude::*, Timer},
+    display::blocking::Display,
 };
 
 use lsm303agr::{
@@ -47,6 +49,14 @@ fn main() -> ! {
 
     let mut timer = Timer::new(board.TIMER0).into_periodic();
 
+    
+    let mut timer_led = Timer::new(board.TIMER1);
+    let mut display = Display::new(board.display_pins);
+    const ROW_COUNT:usize = 5;
+    const COL_COUNT:usize = 5;
+    let mut image_matrix = [[0;COL_COUNT];ROW_COUNT];
+    rprintln!("Display initialised");
+
     loop {
         // By default, the app is not "observing" the acceleration of the board.
         // When a significant X acceleration is detected (i.e. the acceleration goes above some threshold), the app should start a new measurement.
@@ -54,9 +64,10 @@ fn main() -> ! {
         // After the measurement interval ends, the app must report the maximum acceleration observed. You can report the value using the rprintln! macro.
 
         let mut x_acc = sensor.accel_data().unwrap().x.abs();
-        if (x_acc >= 1000) {
+        if x_acc >= 1000 {
             rprintln!("Start measurement");
-            timer.start(1000000_u32); // documentation says frequency is 1 MHz and argument is cycle count. so... 1e6 would be 1 second?
+            display.clear();
+            timer.start(1000000_u32); // documentation says frequency is 1 MHz and argument is cycle count. so... 1e6 would be 1 second
             let mut max_acc = x_acc;
             loop {
                 match timer.wait() {
@@ -72,6 +83,24 @@ fn main() -> ! {
                     },
                 }
             }
+            // light up the led matrix for a second to show results
+            // max is 16, we have 25 leds. I want to always light up at 
+            // least one to show it's working, but that's not an issue
+            // since this only runs if we have at least 1 g acceleration
+            let mut score = max_acc*25/16/1000;
+            rprintln!("Score: {}",score);
+            'outer: for row in 0..5 {
+                for col in 0..5 {
+                    if score > 0 {
+                        image_matrix[row][col] = 1;
+                        score-=1;
+                    } else {
+                        break 'outer;
+                    }
+                }
+            }
+            display.show(&mut timer_led, image_matrix,2000_u32);
+            image_matrix = [[0;COL_COUNT];ROW_COUNT];
         }
     }
 }
