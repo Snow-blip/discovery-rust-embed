@@ -10,18 +10,16 @@ use panic_rtt_target as _;
 use microbit::{
     hal::twi,
     pac::twi0::frequency::FREQUENCY_A,
-    hal::prelude::*,
 };
 
 #[cfg(feature = "v2")]
 use microbit::{
     hal::twim,
     pac::twim0::frequency::FREQUENCY_A,
-    hal::prelude::*,
 };
 
 use lsm303agr::{
-    AccelOutputDataRate, Lsm303agr,
+    AccelOutputDataRate, Lsm303agr, AccelScale
 };
 
 #[entry]
@@ -42,6 +40,7 @@ fn main() -> ! {
     let mut sensor = Lsm303agr::new_with_i2c(i2c);
     sensor.init().unwrap();
     sensor.set_accel_odr(AccelOutputDataRate::Hz50).unwrap();
+    sensor.set_accel_scale(AccelScale::G8);
     rprintln!("Sensor connected");
 
     loop {
